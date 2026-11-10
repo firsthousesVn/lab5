@@ -66,6 +66,14 @@ check_load() {
 }
 check_disk() {
     local percent
+
+    if ! percent=$(remote "LC_ALL=C df -P /" |
+        awk 'NR == 2 {gsub (/%/, "", $5); print $5}') ||
+        [[ -z "$percent"]]; then
+        raise 2
+        log "CRITICAL could not read Pi disk usage"
+        return
+    fi
 }
 
 #MAIN
