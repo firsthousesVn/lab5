@@ -46,11 +46,27 @@ classify() {
 }
 
 #checks
-check_services() {}
-check_http() {}
-check_memory() {}
-check_load() {}
-check_disk() {}
+check_services() {
+    if remote "systemctl is-active apache2 && systemctl is-active mariadb" >/dev/null 2>&1; then
+        log "NORMAL Apache and MariaDB active"
+    else
+        raise 2
+        log "CRITICAL Apache/MariaDB inactive or SSH failed"
+    fi
+} #both apache and mariadb must be active ... ssh failures also make this check critical
+
+check_http() {
+    local result code seconds milliseconds
+}
+check_memory() {
+    local percent
+}
+check_load() {
+    local load
+}
+check_disk() {
+    local percent
+}
 
 #MAIN
 main() {
@@ -60,7 +76,7 @@ main() {
     check_memory
     check_load
     check_disk
-    log "overall status: $STATUS"
+    log "overall status: ${STATES[$STATUS]} ($STATUS)"
     exit "$STATUS"
 }
 main
