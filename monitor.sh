@@ -63,8 +63,17 @@ check_http() {
 check_memory() {
     local percent
 
-    if ! percent=$(remote "")
+    if ! percent=$(remote "LC_ALL=C free -m" |
+        awk '$1 == "Mem:" {printf "%.1f", 100 * ($2 - $7) / $2}') ||
+        [[ -z "$percent" ]]; then
+        raise 2
+        log "CRITICAL could not read Pi memory"
+        return
+    fi
+ 
+    classify "memory_percent" "$percent" "$MEM_WARN" "$MEM_CRIT"
 }
+
 check_load() {
     local load
 
@@ -72,9 +81,12 @@ check_load() {
         [[ -z "$load"]]; then
         raise 2
         log "CRITICAL"
-        
+        return
+    fi
 
+    classify "load_1min" "$load" "$LOAD_WARN" "$LOAD_CRIT"
 }
+
 check_disk() {
     local percent
 
