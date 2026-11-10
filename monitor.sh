@@ -74,7 +74,7 @@ check_disk() {
         log "CRITICAL could not read Pi disk usage"
         return
     fi
-}
+} #checks root filesystem and awk reads its usage percentage and removes the % so it can be compared numerically
 
 #MAIN
 main() {
