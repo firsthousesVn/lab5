@@ -57,12 +57,23 @@ check_services() {
 
 check_http() {
     local result code seconds milliseconds
+
+    if ! result=$(curl -sS --connect-timeout 5 --max-time 10 ###)
 }
 check_memory() {
     local percent
+
+    if ! percent=$(remote "")
 }
 check_load() {
     local load
+
+    if ! load=$() ||
+        [[ -z "$load"]]; then
+        raise 2
+        log "CRITICAL"
+        
+
 }
 check_disk() {
     local percent
