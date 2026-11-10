@@ -10,7 +10,7 @@ LOAD_WARN=2; LOAD_CRIT=4
 DISK_WARN=70; DISK_CRIT=90
 HTTP_WARN_MS=1000; HTTP_CRIT_MS=3000
 
-STATUS=0 #worst state seen: 0 NORMAL, 1 WARNING, 2 CRIT
+STATUS=0
 STATES=(NORMAL WARNING CRITICAL)
 
 #helpers
@@ -19,9 +19,31 @@ log() {
         tee -a "$LOG_FILE" || exit 2
 }
 
-remote() {}
-raise() {}
-classify() {}
+remote() {
+    timeout 20s ssh -T -o BatchMode=yes -o ConnectTimeout=5 \
+        -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
+        "$TARGET_USER@$TARGET_HOST" "$@"
+} #prevents password prompts during cron runs and limits how long a bad connect can hang
+
+raise() {
+    if (( $1 > STATUS)); then
+        STATUS=$1
+    fi
+} #once a check reports CRITICAL, later NORMAL checks can't reset it
+
+classify() {
+    local label=$1 value=$2 warn=$3 crit=$4 level
+
+    level=$(awk -v value="$value" -v warn="$warn" -v crit="$crit" '
+        BEGIN {
+            if (value >= crit) print 2
+            else if (value >= warn) print 1
+            else print 0
+            }')
+    
+    raise "$level"
+    log "${STATES[$level]} $label=$value (warnin=$warn critical=$crit)"
+}
 
 #checks
 check_services() {}
