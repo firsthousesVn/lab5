@@ -68,7 +68,7 @@ check_http() {
 
     read -r code seconds <<< "$result"
 
-    if [[ "$code" != 200]]; then
+    if [[ "$code" != 200 ]]; then
         raise 2
         log "CRITICAL WP returned HTTP $code"
         return
@@ -77,7 +77,7 @@ check_http() {
     milliseconds=$(awk -v seconds="$seconds" \
         'BEGIN {printf "%.0f", seconds * 1000}')
 
-    classify "HTTP_ms" "$milliseconds" "$HTTP_WARN_MS"
+    classify "HTTP_ms" "$milliseconds" "$HTTP_WARN_MS" "$HTTP_CRIT_MS"
 }
 
 check_memory() {
@@ -98,9 +98,9 @@ check_load() {
     local load
 
     if ! load=$(remote "cat /proc/loadavg" | awk '{print $1}') ||
-        [[ -z "$load"]]; then
+        [[ -z "$load" ]]; then
         raise 2
-        log "CRITICAL"
+        log "CRITICAL could not read Pi load"
         return
     fi
 
