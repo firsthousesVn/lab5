@@ -42,7 +42,7 @@ classify() {
             }')
     
     raise "$level"
-    log "${STATES[$level]} $label=$value (warnin=$warn critical=$crit)"
+    log "${STATES[$level]} $label=$value (warning=$warn critical=$crit)"
 }
 
 #checks
@@ -58,8 +58,28 @@ check_services() {
 check_http() {
     local result code seconds milliseconds
 
-    if ! result=$(curl -sS --connect-timeout 5 --max-time 10 ###)
+    if ! result=$(curl -sS --connect-timeout 5 --max-time 10 \
+        -H 'Host: localhost:9000' -o /dev/null \
+        -w '%{http_code} %{time_total}' "$URL"); then
+        raise 2
+        log "CRITICAL WP request failed"
+        return
+    fi
+
+    read -r code seconds <<< "$result"
+
+    if [[ "$code" != 200]]; then
+        raise 2
+        log "CRITICAL WP returned HTTP $code"
+        return
+    fi
+
+    milliseconds=$(awk -v seconds="$seconds" \
+        'BEGIN {printf "%.0f", seconds * 1000}')
+
+    classify "HTTP_ms" "$milliseconds" "$HTTP_WARN_MS"
 }
+
 check_memory() {
     local percent
 
@@ -77,7 +97,7 @@ check_memory() {
 check_load() {
     local load
 
-    if ! load=$() ||
+    if ! load=$(remote "cat /proc/loadavg" | awk '{print $1}') ||
         [[ -z "$load"]]; then
         raise 2
         log "CRITICAL"
@@ -92,11 +112,13 @@ check_disk() {
 
     if ! percent=$(remote "LC_ALL=C df -P /" |
         awk 'NR == 2 {gsub (/%/, "", $5); print $5}') ||
-        [[ -z "$percent"]]; then
+        [[ -z "$percent" ]]; then
         raise 2
         log "CRITICAL could not read Pi disk usage"
         return
     fi
+
+    classify "disk_percent" "$percent" "$DISK_WARN" "$DISK_CRIT"
 } #checks root filesystem and awk reads its usage percentage and removes the % so it can be compared numerically
 
 #MAIN
